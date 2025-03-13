@@ -1,23 +1,22 @@
 package fp.trenes;
-import fp.utiles.Validators;
+
 import java.time.Duration;
 import java.time.LocalTime;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import fp.utiles.Checkers;
 
-public class TrayectoTrenImpl implements TrayectoTren {
+import fp.utiles.Checkers;
+import fp.utiles.Validators;
+
+public class TrayectoTrenImpl2 implements TrayectoTren {
 
 	String codigoTren;
 	String nombreTrayecto;
 	TipoTren tipo;
-	List<String> estaciones;
-	List<LocalTime> horasSalida;
-	List<LocalTime> horasLlegada;
+	List<Parada> paradas;
 
-	public TrayectoTrenImpl(String codigoTren, String nombreTrayecto,
+	public TrayectoTrenImpl2(String codigoTren, String nombreTrayecto,
 			TipoTren tipo, String origen, String destino, LocalTime horaSalida,
 			LocalTime horaLlegada) {
 		this.codigoTren = codigoTren;
@@ -25,18 +24,12 @@ public class TrayectoTrenImpl implements TrayectoTren {
 				&& Validators.sonDigitos(codigoTren)));
 		this.nombreTrayecto = nombreTrayecto;
 		this.tipo = tipo;
-		this.estaciones = new LinkedList<String>();
-		estaciones.add(origen);
-		estaciones.add(destino);
-		this.horasSalida = new LinkedList<LocalTime>();
 		Checkers.checkNoNull(horaSalida, horaLlegada);
-		horasSalida.add(horaSalida);
-		horasSalida.add(null);
-		this.horasLlegada = new LinkedList<LocalTime>();
-		horasLlegada.add(null);
-		Checkers.check("Hora de llegada no valida",
-				(horaSalida.isBefore(horaLlegada)));
-		horasLlegada.add(horaLlegada);
+		this.paradas = new LinkedList<>();
+		paradas.add(new Parada(origen,horaSalida,null));
+		paradas.add(new Parada(destino,null,horaLlegada));
+
+		
 
 
 	}
@@ -60,42 +53,54 @@ public class TrayectoTrenImpl implements TrayectoTren {
 
 	@Override
 	public List<String> getEstaciones() {
-		return Collections.unmodifiableList(estaciones);
+		List<String> estaciones = new LinkedList<>();
+		for (Parada p:paradas) {
+			estaciones.add(p.estacion());
+		}
+		return estaciones;
 	}
 
 	@Override
 	public List<LocalTime> getHorasSalida() {
-		return Collections.unmodifiableList(horasSalida);
+		List<LocalTime> horasSalida = new LinkedList<>();
+		for (Parada p:paradas) {
+			horasSalida.add(p.horaSalida());
+		}
+		return horasSalida;
 	}
 
 	@Override
 	public List<LocalTime> getHorasLlegada() {
-		return Collections.unmodifiableList(horasLlegada);
+		List<LocalTime> horasLlegada = new LinkedList<>();
+		for (Parada p:paradas) {
+			horasLlegada.add(p.horaLlegada());
+		}
+		return horasLlegada;
 	}
 
 	@Override
 	public LocalTime getHoraSalida() {
-		return horasSalida.getFirst();
+		return paradas.getFirst().horaSalida();
 	}
 
 	@Override
 	public LocalTime getHoraLlegada() {
-		return horasLlegada.getLast();
+		return paradas.getLast().horaLlegada();
 	}
 
 	@Override
 	public Duration getDuracionTrayecto() {
-		LocalTime horaSalida = horasSalida.getFirst();
-		LocalTime horaLlegada = horasLlegada.getLast();
+		LocalTime horaSalida = paradas.getFirst().horaSalida();
+		LocalTime horaLlegada = paradas.getLast().horaLlegada();
 		return Duration.between(horaSalida, horaLlegada);
 	}
 
 	@Override
 	public LocalTime getHoraSalida(String estacion) {
 		LocalTime res = null;
-		Integer indice = estaciones.indexOf(estacion);
+		Integer indice = getEstaciones().indexOf(estacion);
 		if (indice >= 0) {
-			res = horasSalida.get(indice);
+			res = getHorasSalida().get(indice);
 		}
 		return res;
 	}
@@ -103,9 +108,9 @@ public class TrayectoTrenImpl implements TrayectoTren {
 	@Override
 	public LocalTime getHoraLlegada(String estacion) {
 		LocalTime res = null;
-		Integer indice = estaciones.indexOf(estacion);
+		Integer indice = getEstaciones().indexOf(estacion);
 		if (indice >= 0) {
-			res = horasLlegada.get(indice);
+			res = getHorasLlegada().get(indice);
 		}
 		return res;
 	}
@@ -113,28 +118,30 @@ public class TrayectoTrenImpl implements TrayectoTren {
 	@Override
 	public void anadirEstacionIntermedia(int posicion, String estacion,
 			LocalTime horaSalida, LocalTime horaLlegada) {
-		Checkers.check("Posicion no valida", (1 <= posicion && posicion < estaciones.size()));
+		Checkers.check("Posicion no valida", (1 <= posicion && posicion < getEstaciones().size()));
 		Checkers.check("Hora de salida anterior a la de llegada", (horaSalida.isAfter(horaLlegada)));
-		Checkers.check("Hora de llegada anterior a la de salida anterior", (horaLlegada.isAfter(horasSalida.get(posicion - 1))));
-		Checkers.check("Hora de salida posterior a la de llegada siguiente", (horaSalida.isBefore(horasLlegada.get(posicion))));
-			estaciones.add(posicion, estacion);
-			horasSalida.add(posicion, horaSalida);
-			horasLlegada.add(posicion, horaLlegada);
+		Checkers.check("Hora de llegada anterior a la de salida anterior", (horaLlegada.isAfter(getHorasSalida().get(posicion - 1))));
+		Checkers.check("Hora de salida posterior a la de llegada siguiente", (horaSalida.isBefore(getHorasLlegada().get(posicion))));
+			paradas.add(posicion, new Parada(estacion,horaSalida,horaLlegada));
 	}
 
 	@Override
 	public void eliminarEstacionIntermedia(String estacion) {
+		List<String> estaciones = getEstaciones();
 			Checkers.check("La estacion es la ultima o la primera", (estacion != estaciones.getFirst()
 				&& estacion != estaciones.getLast()));
 			int posicion = estaciones.indexOf(estacion);
 			estaciones.remove(posicion);
-			horasSalida.remove(posicion);
-			horasLlegada.remove(posicion);
+			getHorasSalida().remove(posicion);
+			getHorasLlegada().remove(posicion);
 
 	}
 
 	@Override
 	public String toString() {
+		List<String> estaciones = getEstaciones();
+		List<LocalTime> horasSalida = getHorasSalida();
+		List<LocalTime> horasLlegada = getHorasLlegada();
 		String nulo = "     ";
 		String cadena = nombreTrayecto + "-" + tipo + " (" + codigoTren
 				+ ")\n\t" + estaciones.getFirst() + "\t" + nulo + "\t"
@@ -203,3 +210,5 @@ public class TrayectoTrenImpl implements TrayectoTren {
 	
 
 }
+
+

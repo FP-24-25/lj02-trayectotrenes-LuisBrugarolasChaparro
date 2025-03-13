@@ -4,7 +4,7 @@ import java.time.Duration;
 import java.time.LocalTime;
 import java.util.List;
 
-public interface TrayectoTren {
+public interface TrayectoTren extends Comparable<TrayectoTren> {
 	String getCodigoTren();
 
 	String getNombre();
@@ -31,5 +31,7 @@ public interface TrayectoTren {
 			LocalTime horaLlegada, LocalTime horaSalida);
 	
 	void eliminarEstacionIntermedia(String estacion);
+
+	int compareTo(TrayectoTren t);
 
 }
